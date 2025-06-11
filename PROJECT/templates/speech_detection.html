@@ -1,0 +1,85 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="card p-4 shadow-sm text-center">
+  <h2 class="mb-3">Speech-Based Emotion Detection</h2>
+  <p class="text-muted mb-4">How are you feeling today? Click the button below to record your response.</p>
+
+  <button class="btn btn-primary" id="recordBtn">Start Recording</button>
+  <p class="mt-3 fw-bold" id="statusText"></p>
+
+  <div class="alert alert-info mt-4 d-none" id="resultBox">
+    <strong>Predicted Level:</strong> <span id="resultLevel"></span><br>
+    <strong>Message:</strong> <span id="resultMessage"></span><br>
+    <span id="nextStepSpan"></span>
+  </div>
+</div>
+
+<script>
+  let mediaRecorder;
+  let audioChunks = [];
+  let isRecording = false;
+
+  const recordBtn = document.getElementById('recordBtn');
+  const statusText = document.getElementById('statusText');
+  const resultBox = document.getElementById('resultBox');
+  const resultLevel = document.getElementById('resultLevel');
+  const resultMessage = document.getElementById('resultMessage');
+  const nextStepSpan = document.getElementById('nextStepSpan');
+
+  recordBtn.onclick = async () => {
+    if (!isRecording) {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      mediaRecorder = new MediaRecorder(stream);
+      audioChunks = [];
+
+      mediaRecorder.ondataavailable = event => {
+        if (event.data.size > 0) {
+          audioChunks.push(event.data);
+        }
+      };
+
+      mediaRecorder.onstop = async () => {
+        const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+        const formData = new FormData();
+        formData.append('audio_file', audioBlob, 'recorded_audio.wav');
+
+        statusText.textContent = "Analyzing your speech...";
+        recordBtn.disabled = true;
+
+        try {
+          const response = await fetch('/process_speech', {
+            method: 'POST',
+            body: formData
+          });
+
+          const data = await response.json();
+          resultLevel.textContent = data.level;
+          resultMessage.textContent = data.message;
+          if (data.next_step) {
+            nextStepSpan.innerHTML = `<a class="btn btn-success mt-2" href="/${data.next_step}">Proceed to ${data.next_step.replace('_', ' ')}</a>`;
+          } else {
+            nextStepSpan.innerHTML = '';
+          }
+          resultBox.classList.remove('d-none');
+          statusText.textContent = "Analysis complete.";
+        } catch (err) {
+          statusText.textContent = "Error during analysis.";
+        }
+
+        recordBtn.disabled = false;
+        recordBtn.textContent = "Start Recording";
+        isRecording = false;
+      };
+
+      mediaRecorder.start();
+      isRecording = true;
+      recordBtn.textContent = "End Recording";
+      statusText.textContent = "Recording in progress...";
+    } else {
+      mediaRecorder.stop();
+      recordBtn.disabled = true;
+      statusText.textContent = "Recording stopped. Processing...";
+    }
+  };
+</script>
+{% endblock %}
