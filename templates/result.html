@@ -1,0 +1,28 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="card text-center p-4 shadow-sm">
+  <h2 class="mb-3">Your Depression Screening Result</h2>
+  <p class="lead">Based on your responses, your estimated depression level is:</p>
+  <h1 class="display-4 text-primary">{{ level }}</h1>
+  <p class="mt-3">
+    {% if level <= 1 %}
+      <span class="text-success">Minimal or no depression symptoms.</span>
+    {% elif level <= 3 %}
+      <span class="text-warning">Moderate symptoms detected. Consider monitoring your mood.</span>
+    {% else %}
+      <span class="text-danger">High depression indicators. We recommend seeking professional support.</span>
+    {% endif %}
+  </p>
+  <p class="mt-2">{{ message }}</p>
+
+  <div class="mt-4">
+    <a href="{{ url_for('quiz_page') }}" class="btn btn-outline-primary me-2">Take Quiz Again</a>
+
+    {% if next_step == 'speech_detection' %}
+      <a href="{{ url_for('speech_detection') }}" class="btn btn-primary">Proceed to Speech Detection</a>
+    {% elif next_step == 'facial_detection' %}
+      <a href="{{ url_for('facial_detection') }}" class="btn btn-primary">Proceed to Facial Detection</a>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
